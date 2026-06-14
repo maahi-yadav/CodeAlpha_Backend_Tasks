@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Event Registration Hub</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 30px auto;
+            padding: 20px;
+            line-height: 1.6;
+            background-color: #fafafa;
+        }
+
+        .section {
+            background: #f4f4f9;
+            padding: 20px;
+            margin-bottom: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+        }
+
+        .event-card {
+            background: white;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 5px;
+            border-left: 5px solid #0056b3;
+        }
+
+        button {
+            background: #0056b3;
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            cursor: pointer;
+            border-radius: 4px;
+            font-weight: bold;
+        }
+
+        button:hover {
+            background: #004494;
+        }
+
+        input {
+            width: 100%;
+            padding: 8px;
+            margin: 5px 0 15px 0;
+            box-sizing: border-box;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+
+<body>
+
+    <h1>📅 Event Registration Hub</h1>
+
+    <div class="section">
+        <h2>Available Events</h2>
+        <div id="event-list">Loading events...</div>
+    </div>
+
+    <div class="section">
+        <h2>Register for an Event</h2>
+        <form id="reg-form">
+            <label>Event ID:</label>
+            <input type="number" id="reg-event-id" placeholder="Look at the ID above (e.g., 1)" required>
+
+            <label>Your Name:</label>
+            <input type="text" id="reg-name" required>
+
+            <label>Your Email:</label>
+            <input type="email" id="reg-email" required>
+
+            <button type="submit">Submit Registration</button>
+        </form>
+        <p id="reg-message" style="font-weight: bold; color: green;"></p>
+    </div>
+
+    <div class="section">
+        <h2>Manage Your Registrations</h2>
+        <label>Enter Email to lookup your bookings:</label>
+        <input type="email" id="lookup-email" placeholder="Enter your email">
+        <button onclick="lookupRegistrations()">View My Registrations</button>
+        <div id="my-registrations"></div>
+    </div>
+
+    <script>
+        // Load events from database
+        async function fetchEvents() {
+            const res = await fetch('/api/events');
+            const data = await res.json();
+            const listDiv = document.getElementById('event-list');
+
+            if (data.length === 0) {
+                listDiv.innerHTML = "<p>No events found.</p>";
+                return;
+            }
+
+            listDiv.innerHTML = data.map(e => `
+                <div class="event-card">
+                    <h3>[ID: ${e.id}] ${e.title}</h3>
+                    <p><strong>Where:</strong> ${e.location} | <strong>When:</strong> ${new Date(e.date).toLocaleString()}</p>
+                    <p>${e.description}</p>
+                </div>
+            `).join('');
+        }
+
+        // Handle Form Submit
+        document.getElementById('reg-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const payload = {
+                event_id: document.getElementById('reg-event-id').value,
+                user_name: document.getElementById('reg-name').value,
+                user_email: document.getElementById('reg-email').value
+            };
+
+            const res = await fetch('/api/register', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            const data = await res.json();
+            document.getElementById('reg-message').innerText = data.message || data.error;
+        });
+
+        // Lookup Bookings
+        async function lookupRegistrations() {
+            const email = document.getElementById('lookup-email').value;
+            const res = await fetch(`/api/manage-registrations?email=${email}`);
+            const data = await res.json();
+            const div = document.getElementById('my-registrations');
+
+            if (data.length === 0) { div.innerHTML = "<p>No registrations found for this email.</p>"; return; }
+
+            div.innerHTML = data.map(r => `
+                <div style="background: white; padding: 10px; margin: 10px 0; border-radius: 4px; border: 1px solid #ddd;">
+                    <p>Registered for: <strong>${r.event_title}</strong></p>
+                    <button style="background: #dc3545;" onclick="cancelRegistration(${r.registration_id})">Cancel Booking</button>
+                </div>
+            `).join('');
+        }
+
+        // Cancel Booking
+        async function cancelRegistration(id) {
+            if (confirm("Cancel this registration?")) {
+                const res = await fetch('/api/manage-registrations', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ registration_id: id })
+                });
+                const data = await res.json();
+                alert(data.message);
+                lookupRegistrations();
+            }
+        }
+
+        fetchEvents();
+    </script>
+</body>
+
+</html>

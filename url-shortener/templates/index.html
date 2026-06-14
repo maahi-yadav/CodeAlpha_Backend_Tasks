@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <title>URL Shortener</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            background: #f0f4ff;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        .card {
+            background: white;
+            padding: 2.5rem;
+            border-radius: 16px;
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.1);
+            width: 100%;
+            max-width: 500px;
+        }
+
+        h1 {
+            font-size: 1.8rem;
+            margin-bottom: 0.4rem;
+            color: #1a1a2e;
+        }
+
+        p.subtitle {
+            color: #666;
+            margin-bottom: 1.5rem;
+            font-size: 0.95rem;
+        }
+
+        input[type="text"] {
+            width: 100%;
+            padding: 0.8rem 1rem;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 1rem;
+        }
+
+        button {
+            margin-top: 1rem;
+            width: 100%;
+            padding: 0.85rem;
+            background: #4f46e5;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background: #4338ca;
+        }
+
+        .result {
+            margin-top: 1.5rem;
+            padding: 1rem;
+            background: #f0fdf4;
+            border: 1px solid #bbf7d0;
+            border-radius: 8px;
+            display: none;
+        }
+
+        .result a {
+            color: #4f46e5;
+            font-weight: 600;
+            word-break: break-all;
+        }
+
+        .error {
+            margin-top: 1rem;
+            color: #dc2626;
+            display: none;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="card">
+        <h1>🔗 URL Shortener</h1>
+        <p class="subtitle">Paste a long URL and get a short link instantly.</p>
+        <input type="text" id="urlInput" placeholder="https://example.com/long/url" />
+        <button onclick="shortenURL()">Shorten URL</button>
+        <p class="error" id="errorMsg"></p>
+        <div class="result" id="result">
+            <p>Your shortened URL:</p>
+            <a id="shortLink" href="#" target="_blank"></a>
+        </div>
+    </div>
+    <script>
+        async function shortenURL() {
+            const input = document.getElementById('urlInput').value.trim();
+            const errorMsg = document.getElementById('errorMsg');
+            const result = document.getElementById('result');
+            const shortLink = document.getElementById('shortLink');
+
+            errorMsg.style.display = 'none';
+            result.style.display = 'none';
+
+            if (!input) {
+                errorMsg.textContent = 'Please enter a URL.';
+                errorMsg.style.display = 'block';
+                return;
+            }
+
+            const res = await fetch('/shorten', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ url: input })
+            });
+
+            const data = await res.json();
+
+            if (!res.ok) {
+                errorMsg.textContent = data.error || 'Something went wrong.';
+                errorMsg.style.display = 'block';
+                return;
+            }
+
+            shortLink.href = data.short_url;
+            shortLink.textContent = data.short_url;
+            result.style.display = 'block';
+        }
+    </script>
+</body>
+
+</html>
